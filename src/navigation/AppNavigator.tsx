@@ -1,10 +1,10 @@
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
+import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import PokemonListScreen from '../screens/PokemonListScreen'
 import PokemonDetailScreen from '../screens/PokemonDetailScreen'
 import FavoritesScreen from '../screens/FavoritesScreen'
-import Ionicons from '@react-native-vector-icons/ionicons'
+import CustomTabBar from '../components/BottomBar'
 
 export type RootStackParamList = {
   Tabs: undefined
@@ -19,20 +19,19 @@ export type TabsParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator<TabsParamList>()
 
+const renderTabBar = (props: BottomTabBarProps) => <CustomTabBar {...props} />
+
 function TabsNavigator() {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      tabBar={renderTabBar}
+      screenOptions={{
         headerShown: false,
-        tabBarIcon: ({ color, size }) => {
-          const iconName = route.name === 'Pokedex' ? 'list' : 'heart'
-          return <Ionicons name={iconName} size={size} color={color} />
-        },
-      })}
+      }}
     >
-      <Tab.Screen name="Pokedex" component={PokemonListScreen} />
-      <Tab.Screen name="Favorites" component={FavoritesScreen} />
-    </Tab.Navigator>
+      <Tab.Screen name="Pokedex" component={PokemonListScreen} options={{ tabBarLabel: 'Pokedex' }} />
+      <Tab.Screen name="Favorites" component={FavoritesScreen} options={{ tabBarLabel: 'Favorites' }} />
+    </Tab.Navigator >
   )
 }
 
