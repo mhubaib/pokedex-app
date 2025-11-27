@@ -19,6 +19,19 @@ async function setFavorites(names: string[]) {
   await AsyncStorage.setItem(KEY, JSON.stringify(names))
 }
 
+type Listener = (names: string[]) => void
+const listeners: Listener[] = []
+function notify(names: string[]) {
+  for (const l of listeners) l(names)
+}
+function subscribe(l: Listener) {
+  listeners.push(l)
+  return () => {
+    const i = listeners.indexOf(l)
+    if (i >= 0) listeners.splice(i, 1)
+  }
+}
+
 export function useFavorites() {
   const [favorites, setFavoritesState] = useState<string[]>([])
   const [ready, setReady] = useState(false)
@@ -28,18 +41,22 @@ export function useFavorites() {
       setFavoritesState(arr)
       setReady(true)
     })
+    const unsub = subscribe(setFavoritesState)
+    return () => unsub()
   }, [])
 
   async function add(name: string) {
     const next = Array.from(new Set([...favorites, name]))
     setFavoritesState(next)
     await setFavorites(next)
+    notify(next)
   }
 
   async function remove(name: string) {
     const next = favorites.filter(n => n !== name)
     setFavoritesState(next)
     await setFavorites(next)
+    notify(next)
   }
 
   async function toggle(name: string) {
@@ -49,4 +66,3 @@ export function useFavorites() {
 
   return { favorites, ready, add, remove, toggle }
 }
-

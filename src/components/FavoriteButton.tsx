@@ -21,7 +21,7 @@ export default function FavoriteButton({ active, onToggle, size = 24 }: Props) {
   const handlePress = useCallback(() => {
     scale.value = withSequence(withSpring(1.2), withSpring(1))
     onToggle()
-  }, [onToggle])
+  }, [onToggle, scale])
 
   return (
     <AnimatedPressable onPress={handlePress} style={[styles.pressable, animatedStyle]}>
@@ -34,4 +34,3 @@ const styles = StyleSheet.create({
   pressable: { paddingHorizontal: 4, paddingVertical: 4, alignItems: 'center', justifyContent: 'center' },
   iconWrap: { alignItems: 'center', justifyContent: 'center' },
 })
-

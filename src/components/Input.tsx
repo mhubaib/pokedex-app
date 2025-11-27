@@ -1,4 +1,3 @@
-import { ReactNode } from 'react'
 import { TextInput, View, StyleSheet, TextInputProps } from 'react-native'
 import FontAwesome, { FontAwesomeIconName } from '@react-native-vector-icons/fontawesome'
 
@@ -38,4 +37,3 @@ const styles = StyleSheet.create({
     color: '#0b0b0f',
   },
 })
-
