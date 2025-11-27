@@ -73,7 +73,7 @@ export default function PokemonListScreen({ navigation }: Props) {
 
   useEffect(() => {
     load()
-  }, [load])
+  }, [])
 
   useEffect(() => {
     fetchTypes().then(setTypes).catch(() => setTypes(['fire', 'water', 'grass', 'electric', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy']))
@@ -85,7 +85,7 @@ export default function PokemonListScreen({ navigation }: Props) {
     setHasMore(true)
     setError(null)
     load()
-  }, [selectedType, load])
+  }, [selectedType])
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
