@@ -59,7 +59,7 @@ export default function PokemonDetailScreen({ route }: Props) {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Title style={styles.capitalize}>{data.name}</Title>
+        <Title style={styles.title}>{data.name.charAt(0).toUpperCase() + data.name.slice(1)}</Title>
       </View>
       <View style={styles.content}>
         <Card>
@@ -96,6 +96,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#f4f4f5' },
   header: { paddingHorizontal: 16, paddingVertical: 12 },
   content: { paddingHorizontal: 16, gap: 12 },
+  title: { fontSize: 24, fontWeight: '800', color: '#333333' },
   art: { width: 200, height: 200, alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   error: { color: '#ef4444', marginBottom: 8 },

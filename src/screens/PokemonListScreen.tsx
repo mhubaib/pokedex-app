@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FlatList, Image, StyleSheet, View, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native'
-import Button from '../components/Button' 
-import FavoriteButton from '../components/FavoriteButton' 
-import { Text } from '../components/Typography' 
+import Button from '../components/Button'
+import FavoriteButton from '../components/FavoriteButton'
+import { Text } from '../components/Typography'
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
 import type { TabsParamList } from '../navigation/AppNavigator'
-import { fetchPokemonList, getOfficialArtworkUrl, PokemonListItem } from '../services/pokeapi'
+import { fetchPokemonList, getOfficialArtworkUrl, PokemonListItem, fetchTypes, fetchPokemonByType } from '../services/pokeapi'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFavorites } from '../store/favorites'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import Header from '../components/Header' 
+import Header from '../components/Header'
+import HeaderList from '../components/HeaderList'
 
 type Props = BottomTabScreenProps<TabsParamList, 'Pokedex'>
 
@@ -28,26 +29,32 @@ export default function PokemonListScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false)
   const { favorites, toggle } = useFavorites()
   const [query, setQuery] = useState('')
+  const [types, setTypes] = useState<string[]>([])
+  const [selectedType, setSelectedType] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (loading || !hasMore) return
     try {
       setLoading(true)
       setError(null)
-      const data = await fetchPokemonList(20, offset)
+      let batch: PokemonListItem[] = []
+      if (!selectedType) {
+        const data = await fetchPokemonList(20, offset)
+        batch = data.results
+      } else {
+        const all = await fetchPokemonByType(selectedType)
+        batch = all.slice(offset, offset + 20)
+        if (offset + 20 >= all.length) setHasMore(false)
+      }
       setItems(prev => {
-        const merged = [...prev, ...data.results]
+        const merged = [...prev, ...batch]
         const map = new Map<string, PokemonListItem>()
         for (const it of merged) map.set(it.name, it)
         const next = Array.from(map.values())
         return next
       })
-      await AsyncStorage.setItem('last_pokemon_list', JSON.stringify(items.length ? items : data.results))
-      if (data.next) {
-        setOffset(o => o + 20)
-      } else {
-        setHasMore(false)
-      }
+      await AsyncStorage.setItem('last_pokemon_list', JSON.stringify(items.length ? items : batch))
+      setOffset(o => o + 20)
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load Pokémon')
       if (items.length === 0) {
@@ -62,11 +69,23 @@ export default function PokemonListScreen({ navigation }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [loading, hasMore, offset, items])
+  }, [loading, hasMore, offset, items, selectedType])
 
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    fetchTypes().then(setTypes).catch(() => setTypes(['fire', 'water', 'grass', 'electric', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy']))
+  }, [])
+
+  useEffect(() => {
+    setItems([])
+    setOffset(0)
+    setHasMore(true)
+    setError(null)
+    load()
+  }, [selectedType])
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -96,7 +115,7 @@ export default function PokemonListScreen({ navigation }: Props) {
     const image = getOfficialArtworkUrl(id)
     return (
       <TouchableOpacity
-        style={styles.cardContainer} 
+        style={styles.cardContainer}
         onPress={() => navigation.navigate('PokemonDetail' as any, { name: item.name })}
       >
         <View style={styles.favoriteButtonContainer}>
@@ -140,6 +159,7 @@ export default function PokemonListScreen({ navigation }: Props) {
         contentContainerStyle={styles.listContent}
         onEndReachedThreshold={0.5}
         onEndReached={() => load()}
+        ListHeaderComponent={<HeaderList categories={types} selected={selectedType} onSelect={setSelectedType} />}
         ListFooterComponent={ListFooter}
       />
     </SafeAreaView>
@@ -152,10 +172,10 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     flex: 1,
-    margin: 8, 
-    borderRadius: 12, 
+    margin: 8,
+    borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#f9f9f9', 
+    backgroundColor: '#f9f9f9',
     alignItems: 'center',
     padding: 8,
     shadowColor: '#000',
@@ -165,28 +185,28 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   thumb: {
-    width: 100, 
+    width: 100,
     height: 100,
     marginBottom: 4,
   },
   name: {
-    fontSize: 16, 
-    fontWeight: '800', 
+    fontSize: 16,
+    fontWeight: '800',
     textTransform: 'capitalize',
-    textAlign: 'center', 
-    color: '#333333', 
+    textAlign: 'center',
+    color: '#333333',
   },
   favoriteButtonContainer: {
     position: 'absolute',
     top: 8,
     right: 8,
     zIndex: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)', 
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 50,
     padding: 4,
   },
   listContent: {
-    paddingBottom: 24, 
+    paddingBottom: 24,
   },
   footer: {
     padding: 20,
@@ -198,7 +218,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   errorText: {
-    color: '#dc2626', 
+    color: '#dc2626',
     marginBottom: 12,
     textAlign: 'center',
   },

@@ -1,8 +1,8 @@
-import { use, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FlatList, Image, StyleSheet, View, ActivityIndicator } from 'react-native'
 import Card from '../components/Card'
 import Button from '../components/Button'
-import { Title, Text } from '../components/Typography'
+import { Text } from '../components/Typography'
 import type { TabsParamList } from '../navigation/AppNavigator'
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
 import { fetchPokemonDetail, getOfficialArtworkUrl } from '../services/pokeapi'
@@ -17,23 +17,35 @@ export default function FavoritesScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState<string>('')
   const [items, setItems] = useState<{ name: string; id: number }[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
+      if (!ready) return
+      if (favorites.length === 0) {
+        setItems([])
+        return
+      }
       try {
         setLoading(true)
-        const res = await Promise.all(
+        setError(null)
+        const results = await Promise.allSettled(
           favorites.map(async name => {
             const d = await fetchPokemonDetail(name)
             return { name: d.name, id: d.id }
           })
         )
-        setItems(res)
+        const ok = results
+          .filter(r => r.status === 'fulfilled')
+          .map(r => (r as PromiseFulfilledResult<{ name: string; id: number }>).value)
+        setItems(ok)
+      } catch (e: any) {
+        setError(e?.message ?? 'Gagal memuat favorit')
       } finally {
         setLoading(false)
       }
     }
-    if (ready) load()
+    load()
   }, [ready, favorites])
 
   return (
@@ -65,6 +77,15 @@ export default function FavoritesScreen({ navigation }: Props) {
               </View>
             </Card>
           )}
+          ListEmptyComponent={
+            <View style={styles.center}>
+              {error ? (
+                <Text style={styles.error}>{error}</Text>
+              ) : (
+                <Text>Tidak ada favorit</Text>
+              )}
+            </View>
+          }
         />
       )}
     </SafeAreaView>
