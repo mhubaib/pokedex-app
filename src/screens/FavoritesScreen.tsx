@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { use, useEffect, useState } from 'react'
 import { FlatList, Image, StyleSheet, View, ActivityIndicator } from 'react-native'
 import Card from '../components/Card'
 import Button from '../components/Button'
@@ -8,12 +8,14 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
 import { fetchPokemonDetail, getOfficialArtworkUrl } from '../services/pokeapi'
 import { useFavorites } from '../store/favorites'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import Header from '../components/Header'
 
 type Props = BottomTabScreenProps<TabsParamList, 'Favorites'>
 
 export default function FavoritesScreen({ navigation }: Props) {
   const { favorites, ready, remove } = useFavorites()
   const [loading, setLoading] = useState(false)
+  const [query, setQuery] = useState<string>('')
   const [items, setItems] = useState<{ name: string; id: number }[]>([])
 
   useEffect(() => {
@@ -36,16 +38,14 @@ export default function FavoritesScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.header}>
-        <Title>Favorites</Title>
-      </View>
+      <Header query={query} setQuery={setQuery} />
       {!ready || loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" />
         </View>
       ) : (
         <FlatList
-          data={items}
+          data={query ? items.filter(item => item.name.toLowerCase().includes(query.trim().toLowerCase())) : items}
           keyExtractor={it => String(it.id)}
           renderItem={({ item }) => (
             <Card>

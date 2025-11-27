@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 
 const KEY = 'favorites'
 
-export async function getFavorites(): Promise<string[]> {
+async function getFavorites(): Promise<string[]> {
   const json = await AsyncStorage.getItem(KEY)
   if (!json) return []
   try {
@@ -15,7 +15,7 @@ export async function getFavorites(): Promise<string[]> {
   }
 }
 
-export async function setFavorites(names: string[]) {
+async function setFavorites(names: string[]) {
   await AsyncStorage.setItem(KEY, JSON.stringify(names))
 }
 

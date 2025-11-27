@@ -48,7 +48,7 @@ export default function AppNavigator() {
         <Stack.Screen
           name="PokemonDetail"
           component={PokemonDetailScreen}
-          options={({ route }) => ({ title: route.params.name })}
+          options={({ route }) => ({ title: route.params.name.charAt(0).toUpperCase() + route.params.name.slice(1) })}
         />
       </Stack.Navigator>
     </NavigationContainer>

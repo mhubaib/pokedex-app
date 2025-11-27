@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Image, StyleSheet, View, ActivityIndicator } from 'react-native'
 import Card from '../components/Card'
 import Button from '../components/Button'
+import FavoriteButton from '../components/FavoriteButton'
 import { Title, Text } from '../components/Typography'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { RootStackParamList } from '../navigation/AppNavigator'
@@ -36,7 +37,7 @@ export default function PokemonDetailScreen({ route }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.center}> 
+      <View style={styles.center}>y 
         <ActivityIndicator size="large" />
       </View>
     )
@@ -70,9 +71,9 @@ export default function PokemonDetailScreen({ route }: Props) {
               </View>
             ))}
           </View>
-          <Button style={styles.mt} onPress={() => toggle(data.name)}>
-            {favorites.includes(data.name) ? 'Hapus dari Favorit' : 'Tambah ke Favorit'}
-          </Button>
+          <View style={styles.favoriteWrap}>
+            <FavoriteButton active={favorites.includes(data.name)} onToggle={() => toggle(data.name)} size={28} />
+          </View>
         </Card>
 
         <Card>
@@ -105,4 +106,5 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18 },
   statRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   statValue: { fontWeight: '700' },
+  favoriteWrap: { marginTop: 12, alignItems: 'center' },
 })

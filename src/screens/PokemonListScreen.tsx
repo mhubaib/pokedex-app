@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FlatList, Image, StyleSheet, View, ActivityIndicator } from 'react-native'
-import Card from '../components/Card'
-import Button from '../components/Button'
-import { Title, Text } from '../components/Typography'
+import { FlatList, Image, StyleSheet, View, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native'
+import Button from '../components/Button' 
+import FavoriteButton from '../components/FavoriteButton' 
+import { Text } from '../components/Typography' 
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
 import type { TabsParamList } from '../navigation/AppNavigator'
 import { fetchPokemonList, getOfficialArtworkUrl, PokemonListItem } from '../services/pokeapi'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFavorites } from '../store/favorites'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import Header from '../components/Header' 
 
 type Props = BottomTabScreenProps<TabsParamList, 'Pokedex'>
 
@@ -24,7 +25,9 @@ export default function PokemonListScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const { favorites, toggle } = useFavorites()
+  const [query, setQuery] = useState('')
 
   const load = useCallback(async () => {
     if (loading || !hasMore) return
@@ -65,26 +68,51 @@ export default function PokemonListScreen({ navigation }: Props) {
     load()
   }, [])
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      setError(null)
+      setHasMore(true)
+      setOffset(0)
+      const data = await fetchPokemonList(20, 0)
+      setItems(data.results)
+      await AsyncStorage.setItem('last_pokemon_list', JSON.stringify(data.results))
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to refresh')
+      const cached = await AsyncStorage.getItem('last_pokemon_list')
+      if (cached) {
+        try {
+          const arr: PokemonListItem[] = JSON.parse(cached)
+          if (Array.isArray(arr)) setItems(arr)
+        } catch { }
+      }
+    } finally {
+      setRefreshing(false)
+    }
+  }, [])
+
   const renderItem = useCallback(({ item }: { item: PokemonListItem }) => {
     const id = getIdFromUrl(item.url)
     const image = getOfficialArtworkUrl(id)
     return (
-      <Card>
-        <View style={styles.row}>
-          <Image source={{ uri: image }} style={styles.thumb} resizeMode="contain" />
-          <View style={styles.col}>
-            <Text style={styles.name}>{item.name}</Text>
-            <View style={styles.actions}>
-              <Button variant="danger" onPress={() => navigation.navigate('PokemonDetail' as any, { name: item.name })}>
-                Detail
-              </Button>
-              <Button style={styles.ml} onPress={() => toggle(item.name)}>
-                {favorites.includes(item.name) ? 'Favorit' : 'Tambah'}
-              </Button>
-            </View>
-          </View>
+      <TouchableOpacity
+        style={styles.cardContainer} 
+        onPress={() => navigation.navigate('PokemonDetail' as any, { name: item.name })}
+      >
+        <View style={styles.favoriteButtonContainer}>
+          <FavoriteButton
+            active={favorites.includes(item.name)}
+            onToggle={() => toggle(item.name)}
+            size={24}
+          />
         </View>
-      </Card>
+        <Image
+          source={{ uri: image }}
+          style={styles.thumb}
+          resizeMode="contain"
+        />
+        <Text style={styles.name}>{item.name}</Text>
+      </TouchableOpacity>
     )
   }, [navigation, favorites, toggle])
 
@@ -102,11 +130,11 @@ export default function PokemonListScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.header}>
-        <Title>Pokédex</Title>
-      </View>
+      <Header query={query} setQuery={setQuery} />
       <FlatList
-        data={items}
+        data={query ? items.filter(i => i.name.toLowerCase().includes(query.toLowerCase())) : items}
+        numColumns={2}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         renderItem={renderItem}
         keyExtractor={(item) => String(getIdFromUrl(item.url))}
         contentContainerStyle={styles.listContent}
@@ -119,16 +147,59 @@ export default function PokemonListScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#f4f4f5' },
-  header: { paddingHorizontal: 16, paddingVertical: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  col: { flex: 1 },
-  name: { fontSize: 18, fontWeight: '700', textTransform: 'capitalize' },
-  actions: { flexDirection: 'row', marginTop: 8, alignItems: 'center' },
-  ml: { marginLeft: 8 },
-  thumb: { width: 72, height: 72 },
-  listContent: { paddingBottom: 16 },
-  footer: { padding: 16, alignItems: 'center' },
-  errorBox: { marginTop: 8, alignItems: 'center' },
-  errorText: { color: '#ef4444', marginBottom: 8 },
-})
+  screen: {
+    flex: 1,
+  },
+  cardContainer: {
+    flex: 1,
+    margin: 8, 
+    borderRadius: 12, 
+    overflow: 'hidden',
+    backgroundColor: '#f9f9f9', 
+    alignItems: 'center',
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  thumb: {
+    width: 100, 
+    height: 100,
+    marginBottom: 4,
+  },
+  name: {
+    fontSize: 16, 
+    fontWeight: '800', 
+    textTransform: 'capitalize',
+    textAlign: 'center', 
+    color: '#333333', 
+  },
+  favoriteButtonContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', 
+    borderRadius: 50,
+    padding: 4,
+  },
+  listContent: {
+    paddingBottom: 24, 
+  },
+  footer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  errorBox: {
+    marginTop: 16,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    color: '#dc2626', 
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+});
