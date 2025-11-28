@@ -72,6 +72,7 @@ export default function FavoritesScreen({ navigation }: Props) {
         <FlatList
           data={query ? items.filter(item => item.name.toLowerCase().includes(query.trim().toLowerCase())) : items}
           keyExtractor={it => String(it.id)}
+          contentContainerStyle={styles.containerFavorites}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           renderItem={({ item }) => (
             <Card>
@@ -116,4 +117,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', marginTop: 8, alignItems: 'center' },
   ml: { marginLeft: 8 },
   thumb: { width: 72, height: 72 },
+  containerFavorites: { padding: 10, paddingBottom: 100 },
+  error: { color: 'red' },
 })
